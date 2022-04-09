@@ -15,7 +15,7 @@
     "animate.css": "^3.7.2",
     "compression": "^1.7.1",
     "convert-csv-to-array": "^1.0.3",
-    "moment": "^2.24.0",
+    "moment": "^2.29.2",
     "node-fetch": "^2.6.0",
     "polka": "next",
     "sirv": "^0.4.0",
