@@ -333,9 +333,9 @@
   }
 
   .sidebar-flag {
-    height: 48px;
-    width: 48px;
-    border-radius: 6px;
+    height: 80px;
+    width: 80px;
+    border-radius: 10px;
     object-fit: cover;
     object-position: center;
   }
@@ -389,7 +389,7 @@
 
   .sidebar-quote .quote-text {
     font-family: "Big Shoulders Display", cursive;
-    font-size: 1.8rem;
+    font-size: 3rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.4);
     font-style: italic;
@@ -405,7 +405,7 @@
 
   .sidebar-quote .quote-attr {
     font-family: "Big Shoulders Display", cursive;
-    font-size: 1.1rem;
+    font-size: 1.6rem;
     font-weight: 900;
     font-style: normal;
     color: rgba(255, 255, 255, 0.25);
@@ -567,8 +567,8 @@
     }
 
     .sidebar-flag {
-      height: 36px;
-      width: 36px;
+      height: 80px;
+      width: 80px;
     }
 
     .sidebar-title {
@@ -590,11 +590,11 @@
     }
 
     .sidebar-quote .quote-text {
-      font-size: 1.2rem;
+      font-size: 2rem;
     }
 
     .sidebar-quote .quote-attr {
-      font-size: 0.85rem;
+      font-size: 1.2rem;
     }
 
     .sidebar-act-slot {
