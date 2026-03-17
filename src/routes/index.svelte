@@ -1,11 +1,11 @@
 <script>
   import moment from "moment";
-  import { onMount } from "svelte";
   import rawActs from "../data/acts.js";
   import rawGovs from "../data/govs.js";
 
   let y = 0;
   let height = 800;
+  let innerWidth = 800;
 
   let govs = false;
   let acts = false;
@@ -163,13 +163,21 @@
 
   const GRID_SCROLL_DELAY = 0.25;
 
-  let mobileListHeight = 0;
+  let mobileListHeight = gridItems.length * 10;
+  let mobilePositions = [];
 
-  onMount(() => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768 && gridInner) {
-      mobileListHeight = gridInner.scrollHeight;
+  const ensureMobilePositions = () => {
+    if (mobilePositions.length || !gridInner) return;
+    mobileListHeight = gridInner.scrollHeight;
+    const children = gridInner.children;
+    for (let i = 0; i < children.length; i++) {
+      mobilePositions.push(children[i].offsetTop);
     }
-  });
+  };
+
+  $: sectionHeight = innerWidth <= 768
+    ? mobileListHeight * 2 + height
+    : totalScrollWeight + height;
 
   const scrollToItem = (idx) => {
     if (!gridSection || !scrollMap[idx] && idx !== 0) return;
@@ -202,25 +210,63 @@
       gridOffset = 0;
     } else {
       const sectionScrollRange = gridSection.offsetHeight - height;
-      const itemScroll = isMobile && sectionScrollRange > 0
-        ? scrollInSection * (totalScrollWeight / sectionScrollRange)
-        : scrollInSection;
 
-      let lo = 0,
-        hi = scrollMap.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi + 1) >> 1;
-        if (scrollMap[mid] <= itemScroll) lo = mid;
-        else hi = mid - 1;
+      if (isMobile && gridInner) {
+        ensureMobilePositions();
+        const listH = gridInner.scrollHeight;
+        const vpH = gridInner.parentElement.clientHeight;
+        const maxOffset = Math.max(0, listH - vpH);
+        const progress = sectionScrollRange > 0
+          ? Math.max(0, Math.min(1, scrollInSection / sectionScrollRange))
+          : 0;
+        gridOffset = progress * maxOffset;
+
+        const cursorPos = gridOffset + 16;
+        let lo = 0, hi = mobilePositions.length - 1;
+        while (lo < hi) {
+          const mid = (lo + hi + 1) >> 1;
+          if (mobilePositions[mid] <= cursorPos) lo = mid;
+          else hi = mid - 1;
+        }
+        if (gridItems[lo] && gridItems[lo].isSeparator) {
+          lo = Math.min(lo + 1, gridItems.length - 1);
+        }
+        activeIndex = lo;
+      } else {
+        const itemScroll = scrollInSection;
+        let lo = 0, hi = scrollMap.length - 1;
+        while (lo < hi) {
+          const mid = (lo + hi + 1) >> 1;
+          if (scrollMap[mid] <= itemScroll) lo = mid;
+          else hi = mid - 1;
+        }
+        activeIndex = lo;
+
+        if (gridInner) {
+          const step = 35;
+          const gap = 3;
+          const padTop = 16;
+          const padBottom = 16;
+          gridCols = Math.max(1, Math.floor((gridInner.clientWidth + step - 32) / step));
+          const viewportH = height - padTop - padBottom;
+          const totalRows = Math.ceil(gridItems.length / gridCols);
+          const totalGridHeight = totalRows * step - gap;
+          const maxOffset = Math.max(0, totalGridHeight - viewportH);
+          const rawProgress = totalScrollWeight > 0
+            ? Math.max(0, Math.min(1, scrollInSection / totalScrollWeight))
+            : 0;
+          const progress = Math.max(0, (rawProgress - GRID_SCROLL_DELAY) / (1 - GRID_SCROLL_DELAY));
+          gridOffset = progress * maxOffset;
+        }
       }
-      activeIndex = lo;
+
       const item = gridItems[activeIndex];
-      if (item) {
+      if (item && !item.isSeparator) {
         currentPM = item.pmIndex;
-        currentDate = item.monthLabel;
-        currentMajority = item.majority.majority;
-        currentSeats = item.majority.seats;
-        if (item.isEvent && item.acts.length > 0) {
+        currentDate = item.monthLabel || currentDate;
+        currentMajority = item.majority ? item.majority.majority : currentMajority;
+        currentSeats = item.majority ? item.majority.seats : currentSeats;
+        if (item.isEvent && item.acts && item.acts.length > 0) {
           const act = item.acts[0];
           currentActName = act.Act;
           currentActLink = act.Link;
@@ -231,33 +277,6 @@
           currentActName = false;
           currentActLink = false;
           currentActDate = false;
-        }
-
-        if (gridInner) {
-          if (isMobile) {
-            const listH = gridInner.scrollHeight;
-            const vpH = gridInner.parentElement.clientHeight;
-            const maxOffset = Math.max(0, listH - vpH);
-            const progress = sectionScrollRange > 0
-              ? Math.max(0, Math.min(1, scrollInSection / sectionScrollRange))
-              : 0;
-            gridOffset = progress * maxOffset;
-          } else {
-            const step = 35;
-            const gap = 3;
-            const padTop = 16;
-            const padBottom = 16;
-            gridCols = Math.max(1, Math.floor((gridInner.clientWidth + step - 32) / step));
-            const viewportH = height - padTop - padBottom;
-            const totalRows = Math.ceil(gridItems.length / gridCols);
-            const totalGridHeight = totalRows * step - gap;
-            const maxOffset = Math.max(0, totalGridHeight - viewportH);
-            const rawProgress = totalScrollWeight > 0
-              ? Math.max(0, Math.min(1, scrollInSection / totalScrollWeight))
-              : 0;
-            const progress = Math.max(0, (rawProgress - GRID_SCROLL_DELAY) / (1 - GRID_SCROLL_DELAY));
-            gridOffset = progress * maxOffset;
-          }
         }
       }
     }
@@ -436,7 +455,6 @@
   .grid-section {
     position: relative;
     background: #f0f0f4;
-    height: var(--dh);
   }
 
   .grid-viewport {
@@ -596,9 +614,6 @@
       margin-top: 0;
     }
 
-    .grid-section {
-      height: var(--mh);
-    }
 
     .grid-viewport {
       top: 50vh;
@@ -664,7 +679,7 @@
   }
 </style>
 
-<svelte:window bind:scrollY={y} bind:innerHeight={height} />
+<svelte:window bind:scrollY={y} bind:innerHeight={height} bind:innerWidth={innerWidth} />
 {#if acts && govs}
   <main>
     <div class="main-inner">
@@ -709,7 +724,7 @@
         <section
           class="grid-section"
           bind:this={gridSection}
-          style={`--dh:${totalScrollWeight + height}px;--mh:${mobileListHeight * 2 + height}px`}>
+          style={`height:${sectionHeight}px`}>
           <div class="grid-viewport">
             <div
               class="grid-inner"
