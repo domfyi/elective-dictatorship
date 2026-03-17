@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30">
+  <!-- Blue field -->
+  <rect width="60" height="30" fill="#d8e2f0"/>
+
+  <!-- White diagonal stripes (St Andrew's saltire) -->
+  <polygon points="0,0 8,0 60,26 60,30 52,30 0,4" fill="#fff"/>
+  <polygon points="52,0 60,0 60,4 8,30 0,30 0,26" fill="#fff"/>
+
+  <!-- Red diagonal stripes (St Patrick's saltire) — offset halves -->
+  <polygon points="0,0 3,0 30,13.5 30,15 27,15 0,1.5" fill="#edc5cc"/>
+  <polygon points="60,30 57,30 30,16.5 30,15 33,15 60,28.5" fill="#edc5cc"/>
+  <polygon points="60,0 60,1.5 33,15 30,15 30,13.5 57,0" fill="#edc5cc"/>
+  <polygon points="0,30 0,28.5 27,15 30,15 30,16.5 3,30" fill="#edc5cc"/>
+
+  <!-- White cross -->
+  <rect x="23" y="0" width="14" height="30" fill="#fff"/>
+  <rect x="0" y="8" width="60" height="14" fill="#fff"/>
+
+  <!-- Red cross (St George's) -->
+  <rect x="26" y="0" width="8" height="30" fill="#edc5cc"/>
+  <rect x="0" y="11" width="60" height="8" fill="#edc5cc"/>
+</svg>
