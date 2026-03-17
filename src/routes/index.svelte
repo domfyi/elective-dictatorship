@@ -1,5 +1,6 @@
 <script>
   import moment from "moment";
+  import { onMount } from "svelte";
   import rawActs from "../data/acts.js";
   import rawGovs from "../data/govs.js";
 
@@ -162,16 +163,30 @@
 
   const GRID_SCROLL_DELAY = 0.25;
 
+  let mobileListHeight = 0;
+
+  onMount(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768 && gridInner) {
+      mobileListHeight = gridInner.scrollHeight;
+    }
+  });
+
   const scrollToItem = (idx) => {
     if (!gridSection || !scrollMap[idx] && idx !== 0) return;
     const sectionTop = gridSection.offsetTop;
-    const targetY = sectionTop + scrollMap[idx] + 20;
+    const isMob = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const sectionRange = gridSection.offsetHeight - height;
+    const targetScroll = isMob && totalScrollWeight > 0
+      ? (scrollMap[idx] / totalScrollWeight) * sectionRange
+      : scrollMap[idx];
+    const targetY = sectionTop + targetScroll + 20;
     window.scrollTo(0, targetY);
   };
 
   // ── Scroll → active grid item mapping ──
   $: if (gridSection && scrollMap.length && y !== undefined && height) {
     const sectionTop = gridSection.offsetTop;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     const scrollInSection = y - sectionTop - 20;
 
     if (scrollInSection < 0) {
@@ -186,11 +201,16 @@
       currentActDate = false;
       gridOffset = 0;
     } else {
+      const sectionScrollRange = gridSection.offsetHeight - height;
+      const itemScroll = isMobile && sectionScrollRange > 0
+        ? scrollInSection * (totalScrollWeight / sectionScrollRange)
+        : scrollInSection;
+
       let lo = 0,
         hi = scrollMap.length - 1;
       while (lo < hi) {
         const mid = (lo + hi + 1) >> 1;
-        if (scrollMap[mid] <= scrollInSection) lo = mid;
+        if (scrollMap[mid] <= itemScroll) lo = mid;
         else hi = mid - 1;
       }
       activeIndex = lo;
@@ -214,22 +234,30 @@
         }
 
         if (gridInner) {
-          const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-          const step = isMobile ? 27 : 35;
-          const gap = 3;
-          const padTop = 16;
-          const padBottom = 16;
-          gridCols = Math.max(1, Math.floor((gridInner.clientWidth + step - (isMobile ? 24 : 32)) / step));
-          const topOffset = isMobile ? Math.round(height / 2) : 0;
-          const viewportH = height - topOffset - padTop - padBottom;
-          const totalRows = Math.ceil(gridItems.length / gridCols);
-          const totalGridHeight = totalRows * step - gap;
-          const maxOffset = Math.max(0, totalGridHeight - viewportH);
-          const rawProgress = totalScrollWeight > 0
-            ? Math.max(0, Math.min(1, scrollInSection / totalScrollWeight))
-            : 0;
-          const progress = Math.max(0, (rawProgress - GRID_SCROLL_DELAY) / (1 - GRID_SCROLL_DELAY));
-          gridOffset = progress * maxOffset;
+          if (isMobile) {
+            const listH = gridInner.scrollHeight;
+            const vpH = gridInner.parentElement.clientHeight;
+            const maxOffset = Math.max(0, listH - vpH);
+            const progress = sectionScrollRange > 0
+              ? Math.max(0, Math.min(1, scrollInSection / sectionScrollRange))
+              : 0;
+            gridOffset = progress * maxOffset;
+          } else {
+            const step = 35;
+            const gap = 3;
+            const padTop = 16;
+            const padBottom = 16;
+            gridCols = Math.max(1, Math.floor((gridInner.clientWidth + step - 32) / step));
+            const viewportH = height - padTop - padBottom;
+            const totalRows = Math.ceil(gridItems.length / gridCols);
+            const totalGridHeight = totalRows * step - gap;
+            const maxOffset = Math.max(0, totalGridHeight - viewportH);
+            const rawProgress = totalScrollWeight > 0
+              ? Math.max(0, Math.min(1, scrollInSection / totalScrollWeight))
+              : 0;
+            const progress = Math.max(0, (rawProgress - GRID_SCROLL_DELAY) / (1 - GRID_SCROLL_DELAY));
+            gridOffset = progress * maxOffset;
+          }
         }
       }
     }
@@ -408,6 +436,7 @@
   .grid-section {
     position: relative;
     background: #f0f0f4;
+    height: var(--dh);
   }
 
   .grid-viewport {
@@ -487,8 +516,12 @@
     box-shadow: 0 0 0 2px #333, 0 0 8px rgba(0, 0, 0, 0.2);
   }
 
+  .g .g-label {
+    display: none;
+  }
 
-  /* ── Mobile: top half sidebar, bottom half grid ── */
+
+  /* ── Mobile: top half sidebar, bottom half list ── */
   @media (max-width: 768px) {
     .sidebar {
       position: fixed;
@@ -563,19 +596,70 @@
       margin-top: 0;
     }
 
+    .grid-section {
+      height: var(--mh);
+    }
+
     .grid-viewport {
       top: 50vh;
       height: 50vh;
-    }
-
-    .g {
-      width: 24px;
-      height: 24px;
+      padding: 0.5rem 0.75rem;
     }
 
     .grid-inner {
-      grid-template-columns: repeat(auto-fill, 24px);
-      gap: 3px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      width: 100%;
+    }
+
+    .g {
+      width: 100%;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    .g.ev {
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+    }
+
+    .g .g-label {
+      display: block;
+      font-size: 0.65rem;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .g.sep {
+      height: 28px;
+      border-radius: 50%;
+      width: 28px;
+      margin: 6px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      align-self: center;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    .g.sep img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: top;
+    }
+
+    .g.ev:hover {
+      transform: none;
     }
   }
 </style>
@@ -625,7 +709,7 @@
         <section
           class="grid-section"
           bind:this={gridSection}
-          style={`height: ${totalScrollWeight + height + 200}px`}>
+          style={`--dh:${totalScrollWeight + height}px;--mh:${mobileListHeight * 2 + height}px`}>
           <div class="grid-viewport">
             <div
               class="grid-inner"
@@ -643,7 +727,11 @@
                     class:ev={item.isEvent}
                     class:active={activeIndex >= 0 && idx === activeIndex}
                     style={`--c:${item.partyColor}`}
-                    on:click={item.isEvent ? () => scrollToItem(idx) : null} />
+                    on:click={item.isEvent ? () => scrollToItem(idx) : null}>
+                    {#if item.isEvent && item.acts.length > 0}
+                      <span class="g-label">{item.acts[0].Act}</span>
+                    {/if}
+                  </div>
                 {/if}
               {/each}
             </div>
